@@ -12,6 +12,11 @@
       "type": "string",
       "default": ""
     },
+    "computePlane": {
+      "description": "Deploy the workload onto the tenant's ComputePlane (requires the computeplane tenant module, cozystack \u003e= the release shipping it). When false, the app runs co-located in the tenant namespace on the management cluster.",
+      "type": "boolean",
+      "default": false
+    },
     "database": {
       "description": "PostgreSQL configuration.",
       "type": "object",
@@ -96,7 +101,7 @@
       }
     },
     "openaiBaseApiUrl": {
-      "description": "OpenAI-compatible API endpoint. Point this at a litellm gateway (e.g. http://litellm-\u003cname\u003e.<namespace>.svc.cluster.local:4000/v1) to expose every model behind that gateway as a chat option in Open WebUI. Empty falls back to the public OpenAI API.",
+      "description": "OpenAI-compatible API endpoint. Point this at a litellm gateway (e.g. http://litellm-\u003cname\u003e.\u003cnamespace\u003e.svc.cluster.local:4000/v1) to expose every model behind that gateway as a chat option in Open WebUI. Empty falls back to the public OpenAI API.",
       "type": "string",
       "default": ""
     },
@@ -106,7 +111,7 @@
       "default": ""
     },
     "resources": {
-      "description": "CPU and memory for the Open WebUI container (each value sets both request and limit). Leave a field empty for the upstream chart default.",
+      "description": "Container resources.",
       "type": "object",
       "default": {},
       "properties": {
