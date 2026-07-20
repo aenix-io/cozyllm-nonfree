@@ -59,10 +59,17 @@ spec:
         {{- if .Values.host }}
         # Behind the TLS Ingress: n8n needs its public URL so generated
         # webhook/editor links and OAuth callbacks are correct.
-        N8N_HOST: {{ .Values.host | quote }}
-        N8N_PROTOCOL: "https"
-        N8N_SECURE_COOKIE: "true"
-        WEBHOOK_URL: {{ printf "https://%s/" .Values.host | quote }}
+        # The n8n chart renders each extraEnv value via `toYaml`, so every entry
+        # must be a full env-var spec (a map with `value:`/`valueFrom:`), not a
+        # bare string.
+        N8N_HOST:
+          value: {{ .Values.host | quote }}
+        N8N_PROTOCOL:
+          value: "https"
+        N8N_SECURE_COOKIE:
+          value: "true"
+        WEBHOOK_URL:
+          value: {{ printf "https://%s/" .Values.host | quote }}
         {{- end }}
         {{- with .Values.vendorLicense }}
         {{- with .secretRef }}
