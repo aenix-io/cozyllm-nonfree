@@ -1,0 +1,110 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  markdownlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Lint markdown
+        run: npx --yes markdownlint-cli2
+
+  lint-render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
+      - name: Install yq
+        run: |
+          curl -sSL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/local/bin/yq
+          chmod +x /usr/local/bin/yq
+
+      - name: Validate each app chart
+        run: |
+          set -e
+          for chart in packages/apps/*/; do
+            name=$(basename "$chart")
+            echo "=== $name ==="
+            helm lint "$chart"
+            helm template "ci-$name" "$chart" > /dev/null
+            jq . "$chart/values.schema.json" > /dev/null
+          done
+
+      - name: Validate platform chart
+        run: |
+          yq e '.' packages/core/platform/templates/cozyrds.yaml > /dev/null
+          yq e '.' packages/core/platform/templates/helmcharts.yaml > /dev/null
+          yq e '.' packages/core/platform/templates/helmrepositories.yaml > /dev/null
+          yq e '.' packages/core/platform/templates/namespaces.yaml > /dev/null
+          helm lint packages/core/platform
+          helm template ci-platform packages/core/platform > /dev/null
+
+      - name: Contract tests
+        run: |
+          set -e
+          fail() { echo "CONTRACT FAIL: $1" >&2; exit 1; }
+
+          # Gatekeeper guards must tolerate real booleans for every _cluster
+          # flag they compare (no "incompatible types for comparison: bool and
+          # string" panic) — covers oidc-enabled and oidc-insecure-skip-verify.
+          helm template ct packages/apps/open-webui --set host=x.example.com \
+            --set _cluster.oidc-enabled=true --set _cluster.oidc-insecure-skip-verify=true > /dev/null \
+            || fail "open-webui gatekeeper panics on a boolean _cluster flag"
+
+          # The open-webui gatekeeper must target the Service the inner chart
+          # actually creates, for any release name (the upstream fullname helper
+          # collapses when the name already contains "open-webui"). Also asserts
+          # the KeycloakClient renders when the EDP API is present.
+          for rel in open-webui ow-prod; do
+            o=$(helm template "$rel" packages/apps/open-webui --set host=x.example.com \
+              --set _cluster.oidc-enabled=true --set-string _cluster.root-host=h \
+              --set-string _cluster.expose-ingress=tenant-root --api-versions "v1.edp.epam.com/v1")
+            fno=$(echo "$o" | yq 'select(.kind=="HelmRelease").spec.values.fullnameOverride')
+            up=$(echo "$o" | yq 'select(.kind=="Deployment" and (.metadata.name|test("gatekeeper"))).spec.template.spec.containers[0].args[] | select(test("^--upstream"))' | sed -E 's#.*//([^.]+)\..*#\1#')
+            { [ -n "$fno" ] && [ "$fno" = "$up" ]; } || fail "open-webui gatekeeper upstream ($up) != Service ($fno) for release $rel"
+            echo "$o" | grep -q "kind: KeycloakClient" || fail "open-webui KeycloakClient not rendered with the EDP API present"
+          done
+
+          # n8n keeps its own auth but must publish a TLS Ingress (cert-manager +
+          # ingressClass) and set its public URL when host is set.
+          n=$(helm template ct packages/apps/n8n --set host=n8n.example.com --set-string _cluster.expose-ingress=tenant-root)
+          echo "$n" | yq 'select(.kind=="HelmRelease").spec.values.ingress.tls[0].secretName' | grep -q n8n-tls || fail "n8n Ingress has no TLS secret"
+          echo "$n" | yq 'select(.kind=="HelmRelease").spec.values.ingress.className' | grep -q tenant-root || fail "n8n Ingress has no ingressClassName"
+          echo "$n" | grep -q WEBHOOK_URL || fail "n8n does not set WEBHOOK_URL when exposed"
+
+          # BYOL: vendorLicense.secretRef must inject the activation key from
+          # the operator's Secret; absent (or null) it must render nothing.
+          v=$(helm template ct packages/apps/n8n --set vendorLicense.secretRef=my-n8n-license)
+          echo "$v" | grep -q "N8N_LICENSE_ACTIVATION_KEY" || fail "n8n does not wire vendorLicense.secretRef"
+          echo "$v" | grep -q "my-n8n-license" || fail "n8n vendorLicense secret name not propagated"
+          helm template ct packages/apps/n8n | grep -q "N8N_LICENSE_ACTIVATION_KEY" && fail "n8n injects a license env without vendorLicense" || true
+          helm template ct packages/apps/n8n --set vendorLicense=null > /dev/null \
+            || fail "n8n nil-pointers when vendorLicense is null"
+
+          # Gatekeepers must not pass the cookie secret as a CLI flag (it would
+          # leak into the process cmdline); it comes from the env var instead.
+          g=$(helm template ct packages/apps/open-webui --set host=x.example.com --set _cluster.oidc-enabled=true)
+          echo "$g" | grep -q -- '--cookie-secret=' && fail "open-webui passes the cookie secret as a CLI flag" || true
+          echo "$g" | grep -q "OAUTH2_PROXY_COOKIE_SECRET" || fail "open-webui no longer provides the cookie secret env var"
+
+          # The resources guard must tolerate resources being set to null (the
+          # bare .Values.resources.cpu access would otherwise nil-pointer panic).
+          for app in open-webui n8n; do
+            helm template ct "packages/apps/$app" --set resources=null > /dev/null \
+              || fail "$app nil-pointers when resources is null"
+          done
+
+          echo "contract tests passed"
