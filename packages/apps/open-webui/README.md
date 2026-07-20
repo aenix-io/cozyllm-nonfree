@@ -24,10 +24,11 @@ A Pattern C Qdrant CR can be provisioned by adding `templates/qdrant.yaml` model
 
 ### Common parameters
 
-| Name           | Description                                                                     | Type     | Value |
-| -------------- | ------------------------------------------------------------------------------- | -------- | ----- |
-| `host`         | Hostname for external access via Ingress. Leave empty to skip Ingress.          | `string` | `""`  |
-| `storageClass` | StorageClass for the managed Postgres PVCs. Leave empty to use cluster default. | `string` | `""`  |
+| Name           | Description                                                                                                                                                                                                                | Type     | Value   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| `host`         | Hostname for external access via Ingress. Leave empty to skip Ingress.                                                                                                                                                     | `string` | `""`    |
+| `storageClass` | StorageClass for the managed Postgres PVCs. Leave empty to use cluster default.                                                                                                                                            | `string` | `""`    |
+| `computePlane` | Deploy the workload onto the tenant's ComputePlane (requires the computeplane tenant module, cozystack >= the release shipping it). When false, the app runs co-located in the tenant namespace on the management cluster. | `bool`   | `false` |
 
 
 ### Database configuration
@@ -54,10 +55,19 @@ A Pattern C Qdrant CR can be provisioned by adding `templates/qdrant.yaml` model
 
 ### LLM backend
 
-| Name               | Description                                                                                                                                                                                                                                              | Type     | Value |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----- |
+| Name               | Description                                                                                                                                                                                                                                             | Type     | Value |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----- |
 | `openaiBaseApiUrl` | OpenAI-compatible API endpoint. Point this at a litellm gateway (e.g. http://litellm-<name>.<namespace>.svc.cluster.local:4000/v1) to expose every model behind that gateway as a chat option in Open WebUI. Empty falls back to the public OpenAI API. | `string` | `""`  |
-| `openaiApiKey`     | Bearer token for the API endpoint above. For LiteLLM, this is the master key. Stored as a Kubernetes Secret.                                                                                                                                             | `string` | `""`  |
+| `openaiApiKey`     | Bearer token for the API endpoint above. For LiteLLM, this is the master key. Stored as a Kubernetes Secret.                                                                                                                                            | `string` | `""`  |
+
+
+### Resources
+
+| Name               | Description                                 | Type     | Value |
+| ------------------ | ------------------------------------------- | -------- | ----- |
+| `resources`        | Container resources.                        | `object` | `{}`  |
+| `resources.cpu`    | CPU request and limit (e.g. 500m, 2).       | `string` | `""`  |
+| `resources.memory` | Memory request and limit (e.g. 512Mi, 2Gi). | `string` | `""`  |
 
 
 ### Replication
