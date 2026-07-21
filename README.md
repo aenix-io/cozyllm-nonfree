@@ -22,6 +22,10 @@ You — the operator installing this catalog — are responsible for ensuring yo
 
 The n8n chart exposes a `vendorLicense` knob for operators who hold an n8n entitlement. Create a Secret in the app namespace whose key `N8N_LICENSE_ACTIVATION_KEY` contains your activation key, then set `spec.vendorLicense.secretRef` to the Secret's name — the chart injects the key into the n8n instance. See [docs/apps/n8n.md](docs/apps/n8n.md) for details.
 
+## ComputePlane placement
+
+Both apps run arbitrary user code (n8n code nodes, Open WebUI tools/pipelines), so each chart carries a `computePlane` toggle (default `false`). When enabled, the untrusted workload is remote-applied onto the tenant's hidden ComputePlane cluster instead of running co-located in the tenant namespace; it requires the Cozystack `computeplane` tenant module. The consumer pattern, the secret/Service contract, and the prerequisites are documented in the free catalog: [cozyllm docs/compute-plane.md](https://github.com/aenix-io/cozyllm/blob/main/docs/compute-plane.md).
+
 ## Install
 
 Apply the bootstrap manifest to a Cozystack 1.4+ cluster (typically alongside the free catalog):

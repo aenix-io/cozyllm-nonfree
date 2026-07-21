@@ -10,10 +10,11 @@ The bundled Valkey (Redis-compatible) subchart is disabled — this scaffold run
 
 ### Common parameters
 
-| Name           | Description                                                                     | Type     | Value |
-| -------------- | ------------------------------------------------------------------------------- | -------- | ----- |
-| `host`         | Hostname for external access via Ingress. Leave empty to skip Ingress.          | `string` | `""`  |
-| `storageClass` | StorageClass for the managed Postgres PVCs. Leave empty to use cluster default. | `string` | `""`  |
+| Name           | Description                                                                                                                                                                                                                | Type     | Value   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| `host`         | Hostname for external access via Ingress. Leave empty to skip Ingress.                                                                                                                                                     | `string` | `""`    |
+| `storageClass` | StorageClass for the managed Postgres PVCs. Leave empty to use cluster default.                                                                                                                                            | `string` | `""`    |
+| `computePlane` | Deploy the workload onto the tenant's ComputePlane (requires the computeplane tenant module, cozystack >= the release shipping it). When false, the app runs co-located in the tenant namespace on the management cluster. | `bool`   | `false` |
 
 
 ### Database configuration

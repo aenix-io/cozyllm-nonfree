@@ -17,3 +17,18 @@ metadata:
 spec:
   interval: 5m
   url: https://helm.openwebui.com/
+---
+# oauth2-proxy — OIDC gatekeeper deployed in front of the ComputePlane workload
+# of open-webui when computePlane is enabled; unused (the gatekeeper is a
+# bundled Deployment) otherwise. Registered in external-open-webui rather than
+# a dedicated namespace so that this chart and the free cozyllm platform chart
+# (which registers its own copy in external-oauth2-proxy) never fight over
+# ownership of a shared object when both repos are installed.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: oauth2-proxy
+  namespace: external-open-webui
+spec:
+  interval: 5m
+  url: https://oauth2-proxy.github.io/manifests

@@ -23,6 +23,11 @@ spec:
             "type": "string",
             "default": ""
           },
+          "computePlane": {
+            "description": "Deploy the workload onto the tenant's ComputePlane (requires the computeplane tenant module, cozystack \u003e= the release shipping it). When false, the app runs co-located in the tenant namespace on the management cluster.",
+            "type": "boolean",
+            "default": false
+          },
           "database": {
             "description": "PostgreSQL configuration.",
             "type": "object",
@@ -76,12 +81,20 @@ spec:
             "default": ""
           },
           "resources": {
-            "description": "CPU and memory for the n8n main container (each value sets both request and limit). Leave a field empty for the upstream chart default.",
+            "description": "Container resources.",
             "type": "object",
             "default": {},
             "properties": {
-              "cpu": {"type": "string", "title": "CPU", "default": "", "description": "CPU request and limit (e.g. 500m, 2)."},
-              "memory": {"type": "string", "title": "Memory", "default": "", "description": "Memory request and limit (e.g. 512Mi, 2Gi)."}
+              "cpu": {
+                "description": "CPU request and limit (e.g. 500m, 2).",
+                "type": "string",
+                "default": ""
+              },
+              "memory": {
+                "description": "Memory request and limit (e.g. 512Mi, 2Gi).",
+                "type": "string",
+                "default": ""
+              }
             }
           },
           "replicaCount": {
@@ -142,6 +155,8 @@ spec:
         - replicaCount
       - - spec
         - vendorLicense
+      - - spec
+        - computePlane
 ---
 apiVersion: cozystack.io/v1alpha1
 kind: ApplicationDefinition
@@ -152,7 +167,7 @@ spec:
     kind: OpenWebUI
     plural: openwebuis
     singular: open-webui
-    openAPISchema: |-
+    openAPISchema: |
       {
         "title": "Chart Values",
         "type": "object",
@@ -166,6 +181,11 @@ spec:
             "description": "StorageClass for the managed Postgres PVCs. Leave empty to use cluster default.",
             "type": "string",
             "default": ""
+          },
+          "computePlane": {
+            "description": "Deploy the workload onto the tenant's ComputePlane (requires the computeplane tenant module, cozystack \u003e= the release shipping it). When false, the app runs co-located in the tenant namespace on the management cluster.",
+            "type": "boolean",
+            "default": false
           },
           "database": {
             "description": "PostgreSQL configuration.",
@@ -251,7 +271,7 @@ spec:
             }
           },
           "openaiBaseApiUrl": {
-            "description": "OpenAI-compatible API endpoint. Point this at a litellm gateway (e.g. http://litellm-\u003cname\u003e.<namespace>.svc.cluster.local:4000/v1) to expose every model behind that gateway as a chat option in Open WebUI. Empty falls back to the public OpenAI API.",
+            "description": "OpenAI-compatible API endpoint. Point this at a litellm gateway (e.g. http://litellm-\u003cname\u003e.\u003cnamespace\u003e.svc.cluster.local:4000/v1) to expose every model behind that gateway as a chat option in Open WebUI. Empty falls back to the public OpenAI API.",
             "type": "string",
             "default": ""
           },
@@ -261,12 +281,20 @@ spec:
             "default": ""
           },
           "resources": {
-            "description": "CPU and memory for the Open WebUI container (each value sets both request and limit). Leave a field empty for the upstream chart default.",
+            "description": "Container resources.",
             "type": "object",
             "default": {},
             "properties": {
-              "cpu": {"type": "string", "title": "CPU", "default": "", "description": "CPU request and limit (e.g. 500m, 2)."},
-              "memory": {"type": "string", "title": "Memory", "default": "", "description": "Memory request and limit (e.g. 512Mi, 2Gi)."}
+              "cpu": {
+                "description": "CPU request and limit (e.g. 500m, 2).",
+                "type": "string",
+                "default": ""
+              },
+              "memory": {
+                "description": "Memory request and limit (e.g. 512Mi, 2Gi).",
+                "type": "string",
+                "default": ""
+              }
             }
           },
           "replicaCount": {
@@ -315,3 +343,5 @@ spec:
         - resources
       - - spec
         - replicaCount
+      - - spec
+        - computePlane
